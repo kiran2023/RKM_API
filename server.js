@@ -1,5 +1,7 @@
-const env = require('dotenv');
-env.config({ path:'./config.env' });
+// const env = require('dotenv');
+// env.config({ path:'./config.env' });
+
+require('dotenv').config();
 
 //? used it as globally for safety otherwise it should be handled where it may occur 
 process.on('unhandledRejection', (error) => {
