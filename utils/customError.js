@@ -4,9 +4,9 @@ class customError extends Error {
         this.statusCode = statusCode;
         this.status = statusCode>=400 && statusCode<500? "Fail" : "Internal Server Error";
 
-        this.isOperational = true //! Error due to incorrect input or data or network problems etc...
+        this.isOperational = true
 
-        Error.captureStackTrace(this, this.constructor)  //! to capture error from where it is occured this--> Error this.constructor
+        Error.captureStackTrace(this, this.constructor)
     }
 }
 

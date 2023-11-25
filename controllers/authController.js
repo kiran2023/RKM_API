@@ -39,6 +39,7 @@ const userRegistration = async(request, response) =>{
 const fetchRegisteredUsers = async(request, response) =>{
     try{
         const userRegistration = await userSignupSchema.find(request.query);
+        console.log(request.query);
         response.status(201).json({
             status: "success",
             userInfo: {
@@ -132,13 +133,11 @@ const roleAuthorization = (...role) => {
 }
 
 const forgotPassword = async (request, response, next) => {
-    //Check Email Exist
     let user = await userSignupSchema.findOne({email: request.body.email});
 
     if(!user){
         next(new customError(`provided mail does not exist. Mail-Id : ${request.body.email} `))
     }
-    //Reset Password Token Encryption
     const tokenGenerated = await user.createPasswordResetToken();
     await user.save({validateBeforeSave: false});
 
@@ -156,7 +155,6 @@ const forgotPassword = async (request, response, next) => {
             Status: 'Mail Sent Successfully'
         });
     }catch(error){
-        //because It may fail to send mail so the value set to the user's reset token has to be undefined.
         user.passwordResetToken = undefined;
         user.passwordResetTokenExpires = undefined;
         await user.save({validateBeforeSave: false});

@@ -37,7 +37,6 @@ const userSignup = new mongoose.Schema({
         },
         required: [true, "Required Field"],
         type: String,
-        // select: false
     },
     confirmPassword: {
         validate: {
@@ -52,7 +51,7 @@ const userSignup = new mongoose.Schema({
     role:{
       type: String,
       enum:{
-          values: ['admin', 'user'],
+          values: ['user'],
           message:"Role - {VALUE} is not available for selection"
       },
       default: 'user',

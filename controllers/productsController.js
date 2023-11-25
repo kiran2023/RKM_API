@@ -4,96 +4,6 @@ const productUrl = './Datas/products.json';
 const globalAsyncErrorHandler = require('../utils/globalAsyncErrorHandler');
 const customError = require('../utils/customError');
 
-// let products = JSON.parse(fs.readFileSync('./Datas/products.json'));
-// let requestedProductData;
-
-//! -------- CRUD Operation with JSON file and Local Database --------
-
-//! Router Param Middleware
-//? value contains the router param passed value in it
-// exports.checkRequestedProduct = (request, response, next, value) => {
-//     requestedProductData = products.find(productData => productData.id == value);
-//     if (!requestedProductData) {
-//         return response.status(404).json({
-//             status: "fail",
-//             time: request.time,
-//             errorMessage: `Product with ID - ${value} is not found`
-//         })
-//     }
-//     next();
-// }
-
-// exports.checkExistingProduct = (request, response, next) => {
-//     console.log(request);
-//     let exisitingProduct = products.find((productData) => productData.productName == request.body.productName);
-//     if (exisitingProduct) {
-//         return response.status(404).json({
-//             status: "fail",
-//             time: request.time,
-//             errorMessage: `Product with Name - ${request.body.productName} Already Exist`
-//         });
-//     }
-//     next();
-// }
-
-// exports.deleteProduct = (request, response) => {
-//     let productIndex = products.indexOf(requestedProductData);
-//     products.splice(productIndex, 1);
-//     fs.writeFile(productUrl, JSON.stringify(products), (error) => {
-//         response.status(204).json({
-//             product: null,
-//             time: request.time
-//         });
-//     });
-// }
-
-// exports.patchProductData = (request, response) => {
-//     let productIndex = products.indexOf(requestedProductData);
-//     console.log(request.body)
-//     Object.assign(requestedProductData, request.body);
-//     products[productIndex] = requestedProductData;
-//     fs.writeFile(productUrl, JSON.stringify(products), (error) => {
-//         response.status(200).json({
-//             status: "success",
-//             time: request.time,
-//             productsData: { requestedProductData }
-//         });
-//     });
-// }
-
-// exports.getSpecificProduct = (request, response) => {
-//     response.status(200).json({
-//         status: "success",
-//         time: request.time,
-//         productsData: { requestedProductData },
-//     });
-// }
-
-// exports.postProduct = (request, response) => {
-//     let newId = products[products.length - 1].id + 1;
-//     let updatedProductData = Object.assign({ id: newId }, request.body);
-//     products.push(updatedProductData);
-
-//     fs.writeFile(productUrl, JSON.stringify(products), (error) => {
-//         response.status(201).json({
-//             status: "success",
-//             time: request.time,
-//             updatedProducts: {
-//                 products
-//             }
-//         });
-//     });
-// }
-
-// exports.getProducts = (request, response) => {
-//     response.status(200).json({
-//         status: "success",
-//         time: request.time,
-//         data: {
-//             products: products
-//         }
-//     });
-// }
 const mongoose =  require('mongoose');
 const productSchema = require('../models/product');
 
@@ -137,7 +47,7 @@ const getAllProducts = globalAsyncErrorHandler (async (request, response) => {
         }
 
         let page = request.query.page*1||1;
-        let limit = request.query.limit*1||5;
+        let limit = request.query.limit*1||30;
         
         let displayProductsPerPage = (page-1) * limit;
         
@@ -206,7 +116,6 @@ const categoryFiltration = globalAsyncErrorHandler(async (request, response) => 
         let categoryProduct = await productSchema.aggregate([
             {$match: { category: categoryName } },
             {$sort: {"productName":1 }},
-            //* {$match: {"ratingAverage":{ $gte: 2} }},
             { $group: {
                 _id: categoryName,
                 products:{ $push: '$productName' },
