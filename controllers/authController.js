@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const util = require('util');
 const token = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -39,6 +38,7 @@ const userRegistration = async(request, response) =>{
 const fetchRegisteredUsers = async(request, response) =>{
     try{
         const userRegistration = await userSignupSchema.find(request.query);
+        console.log(request.query);
         response.status(201).json({
             status: "success",
             userInfo: {
