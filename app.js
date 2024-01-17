@@ -4,6 +4,14 @@ const productsRouter = require('./routes/productsRoutes');
 const authRouter = require('./routes/authRoutes')
 const customError = require('./utils/customError');
 const errorController = require('./controllers/errorController');
+const cors = require('cors');
+
+var corsOptions = {
+    origin: 'https://rk-mart-api-production.up.railway.app/',
+    methods: 'GET, POST, PUT, PATCH, DELETE',
+    credentials: true,
+}
+app.use(cors(corsOptions));
 
 app.use(express.json()); 
 
