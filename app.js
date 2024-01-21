@@ -7,7 +7,7 @@ const errorController = require('./controllers/errorController');
 const cors = require('cors');
 
 var corsOptions = {
-    origin: 'https://rk-mart-api-production.up.railway.app/',
+    origin: 'https://rkmapi-production.up.railway.app/',
     methods: 'GET, POST, PUT, PATCH, DELETE',
     credentials: true,
 }
