@@ -39,7 +39,6 @@ const userRegistration = async(request, response) =>{
 const fetchRegisteredUsers = async(request, response) =>{
     try{
         const userRegistration = await userSignupSchema.find(request.query);
-        console.log(request.query);
         response.status(201).json({
             status: "success",
             userInfo: {
@@ -96,7 +95,7 @@ const userVerification = async function(request, response, next){
         }
 
         if(!tokenInformation){
-            next(new customError("You Are Not Loggedin. Login to Access", 401));
+            return next(new customError("You Are Not Loggedin. Login to Access", 401));
         }
 
         //? verification
@@ -105,13 +104,13 @@ const userVerification = async function(request, response, next){
         const userExist = await userSignupSchema.findById(encodedToken.id);
 
         if(!userExist){
-            next(new customError("User Does Not Exist", 401));
+            return next(new customError("User Does Not Exist", 401));
         }
 
         const userAuthenticated = await userExist.isPasswordChanged(encodedToken.iat);
 
         if(userAuthenticated){
-            next(new customError("Password Changed. Re-Login Again", 401));
+            return next(new customError("Password Changed. Re-Login Again", 401));
         }
         request.userInfo = userExist;
         next();
@@ -126,7 +125,7 @@ const userVerification = async function(request, response, next){
 const roleAuthorization = (...role) => {
     return (request, response, next) => {
         if(!role.includes(request.userInfo.role)){
-            next(new customError("Unauthorized Access Denied", 403));
+            return next(new customError("Unauthorized Access Denied", 403));
         }
         next();
     }
@@ -136,7 +135,7 @@ const forgotPassword = async (request, response, next) => {
     let user = await userSignupSchema.findOne({email: request.body.email});
 
     if(!user){
-        next(new customError(`provided mail does not exist. Mail-Id : ${request.body.email} `))
+        return next(new customError(`provided mail does not exist. Mail-Id : ${request.body.email} `))
     }
     const tokenGenerated = await user.createPasswordResetToken();
     await user.save({validateBeforeSave: false});
