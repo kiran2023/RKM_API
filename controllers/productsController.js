@@ -8,12 +8,12 @@ const mongoose =  require('mongoose');
 const productSchema = require('../models/product');
 
 const priceFilterHighToLow = (request, response, next) => {
-    request.query.sort = '-actualAmount';
+    request.query.sort = '-currentPrice';
     next();
 }
 
 const priceFilterLowToHigh = (request, response, next) => {
-    request.query.sort = 'actualAmount';
+    request.query.sort = 'currentPrice';
     next();
 }
 
