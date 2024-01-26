@@ -44,7 +44,7 @@ const productSchema = new mongoose.Schema({
     productName: {
         required: [true, "Required Field"],
         type: String,
-        unique: true
+        unique: [true, "Product Name Already Exists"]
     },
     quantity: {
         required: [true, "Required Field"],
@@ -79,7 +79,7 @@ const productSchema = new mongoose.Schema({
 });
 
 
-//! Virtuals
+//! Virtual Properties
 productSchema.virtual("discountPercentage").get(function () {
     return Math.round(((this.originalPrice - this.currentPrice) / this.originalPrice) * 100);
 });
@@ -100,11 +100,11 @@ productSchema.post('save', function(document, next){
 });
 
 //! Query Middleware
-productSchema.pre(/^find/, function(next){
-    this.find({ Stock: {$gt: 0} });
-    this.startTime = Date.now();
-    next();
-});
+// productSchema.pre(/^find/, function(next){
+//     this.find({ Stock: {$gt: 0} });
+//     this.startTime = Date.now();
+//     next();
+// });
 
 productSchema.post(/^find/, function(document, next){
     this.endTime = Date.now();
@@ -120,7 +120,7 @@ productSchema.post(/^find/, function(document, next){
 //! Aggregation Middleware
 
 productSchema.pre('aggregate', function(next){
-    this.pipeline().unshift({ Stock: {$gt: 0}})
+    this.pipeline().unshift( { $match: { Stock: {$gt: 0}}})
     next();
 });
 
