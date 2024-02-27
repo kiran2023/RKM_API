@@ -37,7 +37,6 @@ const userSignup = new mongoose.Schema({
         },
         required: [true, "Required Field"],
         type: String,
-        // select: false
     },
     confirmPassword: {
         validate: {

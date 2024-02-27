@@ -102,11 +102,9 @@ const userVerification = async function (request, response, next) {
       tokenInformation = headerAuthorization.split(" ")[1];
     }
 
-    if (!tokenInformation) {
-      return next(
-        new customError("You Are Not Loggedin. Login to Access", 401)
-      );
-    }
+        if(!tokenInformation){
+            next(new customError("You Are Not Loggedin. Login to Access", 401));
+        }
 
     //? verification
     const encodedToken = await util.promisify(token.verify)(
@@ -116,71 +114,67 @@ const userVerification = async function (request, response, next) {
 
     const userExist = await userSignupSchema.findById(encodedToken.id);
 
-    if (!userExist) {
-      return next(new customError("User Does Not Exist", 401));
-    }
+        if(!userExist){
+            next(new customError("User Does Not Exist", 401));
+        }
 
     const userAuthenticated = await userExist.isPasswordChanged(
       encodedToken.iat
     );
 
-    if (userAuthenticated) {
-      return next(new customError("Password Changed. Re-Login Again", 401));
+        if(userAuthenticated){
+            next(new customError("Password Changed. Re-Login Again", 401));
+        }
+        request.userInfo = userExist;
+        next();
+    }catch(error){
+        response.status(404).json({
+            status: "fail",
+            message: `Error - ${error}`
+        });
     }
-    request.userInfo = userExist;
-    console.log("userVerification");
-    next();
-  } catch (error) {
-    response.status(404).json({
-      status: "fail",
-      message: `Error - ${error}`,
-    });
-  }
-};
+}
 
-const roleAuthorization = (request, response, next) => {
-  const role = process.env.USER_ROLE;
-  if (!role.includes(request.userInfo.role)) {
-    return next(new customError("Unauthorized Access Denied", 403));
-  }
-  next();
-};
+const roleAuthorization = (...role) => {
+    return (request, response, next) => {
+        if(!role.includes(request.userInfo.role)){
+            next(new customError("Unauthorized Access Denied", 403));
+        }
+        next();
+    }
+}
 
 const forgotPassword = async (request, response, next) => {
-  //Check Email Exist
-  let user = await userSignupSchema.findOne({ email: request.body.email });
+    //Check Email Exist
+    let user = await userSignupSchema.findOne({email: request.body.email});
 
-  if (!user) {
-    return next(
-      new customError(
-        `provided mail does not exist. Mail-Id : ${request.body.email} `
-      )
-    );
-  }
-  //Reset Password Token Encryption
-  const tokenGenerated = await user.createPasswordResetToken();
-  await user.save({ validateBeforeSave: false });
+    if(!user){
+        next(new customError(`provided mail does not exist. Mail-Id : ${request.body.email} `))
+    }
+    //Reset Password Token Encryption
+    const tokenGenerated = await user.createPasswordResetToken();
+    await user.save({validateBeforeSave: false});
 
   const resetPasswordUrl = `${request.protocol}://${request.get(
     "host"
   )}/api/v1/resetPassword/${tokenGenerated}`;
   const message = `Hi ${user.userName}.\n\nWe have recieved a mail for your password reset to your account.Please follow the below link to reset your password.\n\n${resetPasswordUrl}\n\nPLEASE IGNORE IF YOU HAVEN'T REQUESTED.\n\nThank You.\nRK MART`;
 
-  try {
-    await emailSender.mailSender({
-      mail: user.email,
-      subject: "Password Reset Request - RK MART",
-      message: message,
-    });
-    response.status(200).json({
-      message: "Success",
-      Status: "Mail Sent Successfully",
-    });
-  } catch (error) {
-    //because It may fail to send mail so the value set to the user's reset token has to be undefined.
-    user.passwordResetToken = undefined;
-    user.passwordResetTokenExpires = undefined;
-    await user.save({ validateBeforeSave: false });
+    try{
+        await emailSender.mailSender({
+            mail: user.email,
+            subject: 'Password Reset Request - RK MART',
+            message: message
+        });
+        response.status(200).json({
+            message:'Success',
+            Status: 'Mail Sent Successfully'
+        });
+    }catch(error){
+        //because It may fail to send mail so the value set to the user's reset token has to be undefined.
+        user.passwordResetToken = undefined;
+        user.passwordResetTokenExpires = undefined;
+        await user.save({validateBeforeSave: false});
 
     const result = new customError(
       "Error While Sending Mail. Please Check Back Later",
@@ -227,24 +221,16 @@ const resetPassword = async (request, response, next) => {
       })
       .catch((error) => {
         response.status(400).json({
-          status: "fail",
-          message: `Failed to reset your password try again later. Error - ${error}`,
+            status: 'fail',
+            message: 'Failed to reset your password try again later.'
         });
-      });
-  } catch (error) {
-    response.status(400).json({
+    })
+} catch (error) {
+    response.status(404).json({
       status: "fail",
-      message: "Failed to reset your password try again later.",
+      message: `Error - ${error}`,
     });
   }
 };
 
-module.exports = {
-  userRegistration,
-  fetchRegisteredUsers,
-  login,
-  userVerification,
-  roleAuthorization,
-  forgotPassword,
-  resetPassword,
-};
+module.exports = { userRegistration, fetchRegisteredUsers, login, userVerification, roleAuthorization, forgotPassword, resetPassword }

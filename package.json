@@ -1,10 +1,17 @@
 {
   "name": "nodejs_expressjs",
   "version": "1.0.0",
+<<<<<<< HEAD
   "description": "Rk Mart API",
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js"
+=======
+  "description": "NodeJs with ExpressJS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+>>>>>>> d56f9fcbdec7009b2ce11a20f7b670e6cb7c5e3f
   },
   "keywords": [
     "NodeJs",

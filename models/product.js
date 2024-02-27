@@ -84,7 +84,6 @@ productSchema.virtual("discountPercentage").get(function () {
     return Math.round(((this.originalPrice - this.currentPrice) / this.originalPrice) * 100);
 });
 
-//! Document Middleware -- Multipe Pre, post can be called --> save() or create() --> insertMany or findByIdAndUpdate it does not work.
 productSchema.pre('save', function(next) {
     this.productAdded = new Date();
     next();
@@ -116,8 +115,6 @@ productSchema.post(/^find/, function(document, next){
     });
     next();
 });
-
-//! Aggregation Middleware
 
 productSchema.pre('aggregate', function(next){
     this.pipeline().unshift( { $match: { Stock: {$gt: 0}}})
