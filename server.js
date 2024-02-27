@@ -8,14 +8,8 @@ process.on('unhandledRejection', (error) => {
   });
 });
 
-<<<<<<< HEAD
 process.on('uncaughtException', (error) => {  //? It should be declared where ever possibilities of this exception may occur insted of declaring it globally
   process.exit(); //? It is Synchoronous so no need to close server as it is nothing to do it with server
-=======
-process.on('uncaughtException', (error) => {  
-  console.log(error.name, error.message); 
-  process.exit();
->>>>>>> d56f9fcbdec7009b2ce11a20f7b670e6cb7c5e3f
 })
 
 const mongoose = require('mongoose');

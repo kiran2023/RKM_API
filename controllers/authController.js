@@ -16,14 +16,41 @@ const tokenGeneration = (userId) => {
   );
 };
 
+const storeToken = () => {
+  let options = {
+    expires: new Date(
+      Date.now() + process.env.USER_SESSION_TIMEOUT * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+  };
+
+  if (process.env.NODE_ENV === "production") {
+    options.secure = true;
+  }
+  return options;
+};
+
+const filterObj = (obj, ...allowedFields) => {
+  const newObj = {};
+  Object.keys(obj).forEach((element) => {
+    if (allowedFields.includes(element)) {
+      newObj[element] = obj[element];
+    }
+  });
+  return newObj;
+};
+
 const userRegistration = async (request, response) => {
   try {
     const userRegistration = await userSignupSchema.create(request.body);
+    userRegistration.password = undefined;
     let userJwtToken = tokenGeneration(userRegistration._id);
+
+    let options = storeToken(userJwtToken);
+    response.cookie("jwt", userJwtToken, options);
 
     response.status(201).json({
       status: "success",
-      userJwtToken,
       userInfo: {
         userRegistration,
       },
@@ -73,17 +100,21 @@ const login = async (request, response, next) => {
       password,
       userInformation.password
     );
+    userInformation.password = undefined;
 
     if (!userInformation || !passwordVerification) {
       const error = new customError("Invalid User Mail or Password", 400);
       return next(error);
     }
-    const userToken = tokenGeneration(userInformation._id);
+
+    const userJwtToken = tokenGeneration(userInformation._id);
+    let options = storeToken(userJwtToken);
+    response.cookie("jwt", userJwtToken, options);
     response.status(200).json({
       status: "success",
-      userJwtToken: userToken,
+      token: userJwtToken,
       userInfo: {
-        userRegistration,
+        userInformation,
       },
     });
   } catch (error) {
@@ -102,11 +133,10 @@ const userVerification = async function (request, response, next) {
       tokenInformation = headerAuthorization.split(" ")[1];
     }
 
-        if(!tokenInformation){
-            next(new customError("You Are Not Loggedin. Login to Access", 401));
-        }
+    if (!tokenInformation) {
+      next(new customError("You Are Not Logged in. Login to Access", 401));
+    }
 
-    //? verification
     const encodedToken = await util.promisify(token.verify)(
       tokenInformation,
       process.env.SECRET_TOKEN_STR
@@ -114,67 +144,68 @@ const userVerification = async function (request, response, next) {
 
     const userExist = await userSignupSchema.findById(encodedToken.id);
 
-        if(!userExist){
-            next(new customError("User Does Not Exist", 401));
-        }
+    if (!userExist) {
+      next(new customError("User Does Not Exist", 401));
+    }
 
     const userAuthenticated = await userExist.isPasswordChanged(
       encodedToken.iat
     );
 
-        if(userAuthenticated){
-            next(new customError("Password Changed. Re-Login Again", 401));
-        }
-        request.userInfo = userExist;
-        next();
-    }catch(error){
-        response.status(404).json({
-            status: "fail",
-            message: `Error - ${error}`
-        });
+    if (userAuthenticated) {
+      next(new customError("Password Changed. Re-Login Again", 401));
     }
-}
+    request.userInfo = userExist;
+    next();
+  } catch (error) {
+    response.status(404).json({
+      status: "fail",
+      message: `Error - ${error}`,
+    });
+  }
+};
 
 const roleAuthorization = (...role) => {
-    return (request, response, next) => {
-        if(!role.includes(request.userInfo.role)){
-            next(new customError("Unauthorized Access Denied", 403));
-        }
-        next();
+  return (request, response, next) => {
+    if (!role.includes(request.userInfo.role)) {
+      next(new customError("Unauthorized Access Denied", 403));
     }
-}
+    next();
+  };
+};
 
 const forgotPassword = async (request, response, next) => {
-    //Check Email Exist
-    let user = await userSignupSchema.findOne({email: request.body.email});
+  let user = await userSignupSchema.findOne({ email: request.body.email });
 
-    if(!user){
-        next(new customError(`provided mail does not exist. Mail-Id : ${request.body.email} `))
-    }
-    //Reset Password Token Encryption
-    const tokenGenerated = await user.createPasswordResetToken();
-    await user.save({validateBeforeSave: false});
+  if (!user) {
+    next(
+      new customError(
+        `provided mail does not exist. Mail-Id : ${request.body.email} `
+      )
+    );
+  }
+  const tokenGenerated = await user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
 
   const resetPasswordUrl = `${request.protocol}://${request.get(
     "host"
   )}/api/v1/resetPassword/${tokenGenerated}`;
-  const message = `Hi ${user.userName}.\n\nWe have recieved a mail for your password reset to your account.Please follow the below link to reset your password.\n\n${resetPasswordUrl}\n\nPLEASE IGNORE IF YOU HAVEN'T REQUESTED.\n\nThank You.\nRK MART`;
+  const message = `Hi ${user.userName}.\n\nWe have received a mail for your password reset to your account.Please follow the below link to reset your password.\n\n${resetPasswordUrl}\n\nPLEASE IGNORE IF YOU HAVEN'T REQUESTED.\n\nThank You.\nRK MART`;
 
-    try{
-        await emailSender.mailSender({
-            mail: user.email,
-            subject: 'Password Reset Request - RK MART',
-            message: message
-        });
-        response.status(200).json({
-            message:'Success',
-            Status: 'Mail Sent Successfully'
-        });
-    }catch(error){
-        //because It may fail to send mail so the value set to the user's reset token has to be undefined.
-        user.passwordResetToken = undefined;
-        user.passwordResetTokenExpires = undefined;
-        await user.save({validateBeforeSave: false});
+  try {
+    await emailSender.mailSender({
+      mail: user.email,
+      subject: "Password Reset Request - RK MART",
+      message: message,
+    });
+    response.status(200).json({
+      message: "Success",
+      Status: "Mail Sent Successfully",
+    });
+  } catch (error) {
+    user.passwordResetToken = undefined;
+    user.passwordResetTokenExpires = undefined;
+    await user.save({ validateBeforeSave: false });
 
     const result = new customError(
       "Error While Sending Mail. Please Check Back Later",
@@ -208,8 +239,9 @@ const resetPassword = async (request, response, next) => {
     user.passwordResetToken = undefined;
     user.passwordResetTokenExpires = undefined;
     user.passwordChangedAt = Date.now();
-    const token = tokenGeneration(user._id);
-
+    const userJwtToken = tokenGeneration(user._id);
+    let options = storeToken(userJwtToken);
+    response.cookie("jwt", userJwtToken, options);
     user
       .save()
       .then(() => {
@@ -221,11 +253,11 @@ const resetPassword = async (request, response, next) => {
       })
       .catch((error) => {
         response.status(400).json({
-            status: 'fail',
-            message: 'Failed to reset your password try again later.'
+          status: "fail",
+          message: "Failed to reset your password try again later.",
         });
-    })
-} catch (error) {
+      });
+  } catch (error) {
     response.status(404).json({
       status: "fail",
       message: `Error - ${error}`,
@@ -233,4 +265,94 @@ const resetPassword = async (request, response, next) => {
   }
 };
 
-module.exports = { userRegistration, fetchRegisteredUsers, login, userVerification, roleAuthorization, forgotPassword, resetPassword }
+const updatePassword = async (request, response, next) => {
+  try {
+    const user = await userSignupSchema
+      .findById(request.userInfo.id)
+      .select("+password");
+    const passwordVerification = await user.passwordVerification(
+      request.body.currentPassword,
+      user.password
+    );
+    console.log(passwordVerification);
+
+    if (!passwordVerification) {
+      const error = new customError("Invalid Current Password", 401);
+      return next(error);
+    }
+    user.password = request.body.newPassword;
+    user.confirmPassword = request.body.confirmPassword;
+
+    await user
+      .save()
+      .then(() => {
+        const userJwtToken = tokenGeneration(user.id);
+        let options = storeToken(userJwtToken);
+        response.cookie("jwt", userJwtToken, options);
+
+        response.status(200).json({
+          status: "success",
+          message: "Password Changed Successfully",
+          token: userJwtToken,
+        });
+      })
+      .catch((error) => {
+        response.status(400).json({
+          status: "fail",
+          message: `Failed to reset your password try again later. ${error.message}`,
+        });
+      });
+  } catch (error) {
+    response.status(404).json({
+      status: "fail",
+      message: `Error - ${error}`,
+    });
+  }
+};
+
+const updateUser = async (request, response, next) => {
+  try {
+    
+    if (request.body.password || request.body.confirmPassword) {
+      return next(
+        new customError("You cannot update password at this endpoint", 400)
+      );
+    }
+
+    const filteredBody = filterObj(
+      request.body,
+      "userName",
+      "email",
+      "mobileNumber"
+    );
+
+    const user = await userSignupSchema.findByIdAndUpdate(
+      request.userInfo.id,
+      filteredBody,
+      { runValidators: true }
+    );
+                                           
+    response.status(200).json({
+      status: "success",
+      message: "User Updated Successfully",
+    });
+    
+  } catch (error) {
+    response.status(404).json({
+      status: "fail",
+      message: `Failed to update user details - ${error.message}`,
+    });
+  }
+};
+
+module.exports = {
+  userRegistration,
+  fetchRegisteredUsers,
+  login,
+  userVerification,
+  roleAuthorization,
+  forgotPassword,
+  resetPassword,
+  updatePassword,
+  updateUser
+};

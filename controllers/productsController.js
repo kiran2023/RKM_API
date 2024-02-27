@@ -13,6 +13,10 @@ const priceFilterLowToHigh = (request, response, next) => {
 
 const getAllProducts = async (request, response) => {
   try {
+    response.status(200).json({
+      status: "success",
+      message: "Fetching Data...",
+    });
     let queryStr = JSON.stringify(request.query);
     queryStr = queryStr.replace(/\b(gt|gte|lt|lte)\b/g, (match) => `$${match}`);
 
