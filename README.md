@@ -13,4 +13,4 @@ Technology Used - NodeJS, ExpressJS & MongoDB.
 8. Update User Details
 9. Forgot/Reset Password, Update Password
 
-Visit - https://rkmapi-production.up.railway.app/
+Visit - https://rkmart.azurewebsites.net
